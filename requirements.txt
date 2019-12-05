@@ -1,0 +1,4 @@
+ray
+zero_ad
+gym
+numpy
