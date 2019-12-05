@@ -9,6 +9,6 @@ register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 
 if __name__ == '__main__':
     parser = create_parser()
-    parser.set_defaults(env='CavalryVsInfantry')
+    parser.set_defaults(env='CavalryVsInfantry', no_render=True)
     args = parser.parse_args()
     run(args, parser)
