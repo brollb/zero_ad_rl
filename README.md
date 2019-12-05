@@ -2,7 +2,7 @@
 This repository contains a simple example training an RL agent to learn to control an army of cavalry in a small scenario.
 
 ## Quick Start
-First, install the required python dependencies  and run an instance of 0 AD (built with RL interface support) locally:
+First, install the required python dependencies  and run an instance of 0 AD ([built with RL interface support](https://code.wildfiregames.com/D2199)) locally:
 
 ```
 pip install -r requirements.txt
