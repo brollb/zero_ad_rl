@@ -1,5 +1,5 @@
 """
-    This script trains an RL agent on the CavalryVsInfantry map (using PPO).
+    This script wraps the default rllib train script and registers the CavalryVsInfantry scenario.
 """
 
 from ray.rllib.train import create_parser, run
