@@ -4,9 +4,10 @@
 
 from ray.rllib.train import create_parser, run
 from ray.tune.registry import register_env
-from cav_vs_inf_env import CavalryVsInfantryEnv
+from cav_vs_inf_env import CavalryVsInfantryEnv, SimpleMinimapCavVsInfEnv
 
 register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
+register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
 
 if __name__ == '__main__':
     parser = create_parser()
