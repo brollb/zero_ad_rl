@@ -11,7 +11,7 @@ pyrogenesis --rpc-server=0.0.0.0:50050 --autostart-nonvisual
 
 Next, train an agent using
 ```
-python train.py --env CavalryVsInfantry --run PPO --checkpoint-freq 50000 --steps 500000
+python train.py --env CavalryVsInfantry --run PPO --checkpoint-freq 100
 ```
 
 Finally, generate some rollouts. (First, you may want to shutdown 0 AD and run it w/o the `--autostart-nonvisual` command.) To run an agent from a given checkpoint, use the following command:
