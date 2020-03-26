@@ -10,7 +10,7 @@ pyrogenesis --rpc-server=0.0.0.0:50050 --autostart-nonvisual
 ```
 
 Next, train an agent using
-```
+```bash
 python train.py --env CavalryVsInfantry --run PPO --checkpoint-freq 50000 --steps 500000
 ```
 
@@ -18,3 +18,9 @@ Finally, generate some rollouts. (First, you may want to shutdown 0 AD and run i
 ```
 python rollout.py ~/ray_results/path/to/checkpoint/file --env CavalryVsInfantry --run PPO --steps 5000
 ```
+
+## Environments
+This contains a few different gym environments which use slightly different observation and action spaces:
+- CavalryVsInfantry:
+- MinimapCavVsInf:
+- SimpleMinimapCavVsInf:

@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import gym
+import math
 from gym.spaces import Discrete, Box
 import numpy as np
 import zero_ad
@@ -35,13 +36,21 @@ class BaseZeroADEnv(gym.Env):
             print('episode complete. reward:', reward)
         return self.observation(self.state), reward, done, {}
 
+    def get_player_state(self, state, index):
+        return state.data['players'][index]['state']
+
+    def reward(self, prev_state, state):
+        if self.get_player_state(state, 1) == 'defeated':
+            return -1
+        elif self.get_player_state(state, 2) == 'defeated':
+            return 1
+        else:
+            return 0
+
     def observation(self, state):
         pass
 
     def scenario_config(self):
-        pass
-
-    def reward(self, prev_state, state):
         pass
 
     def resolve_action(self, action_index):
@@ -83,9 +92,6 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         config.add_player('Player 2', civ='spart', team=2)
         return config
 
-    def get_player_state(self, state, index):
-        return state.data['players'][index]['state']
-
     def observation(self, state):
         dist = np.linalg.norm(self.enemy_offset(state))
         max_dist = 80
@@ -100,14 +106,6 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
     def center(self, units):
         positions = np.array([unit.position() for unit in units])
         return np.mean(positions, axis=0)
-
-    def reward(self, prev_state, state):
-        if self.get_player_state(state, 1) == 'defeated':
-            return -1
-        elif self.get_player_state(state, 2) == 'defeated':
-            return 1
-        else:
-            return 0
 
 class SimpleMinimapCavVsInfEnv(CavalryVsInfantryEnv):
     def __init__(self, config):
@@ -132,3 +130,38 @@ class SimpleMinimapCavVsInfEnv(CavalryVsInfantryEnv):
 
         return obs
 
+class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
+    def __init__(self, config):
+        super().__init__(config)
+        self.action_space = Discrete(9)
+
+    def resolve_action(self, action_index):
+        if action_index == 8:
+            return self.attack()
+        else:
+            return self.move(2 * math.pi * action_index/8)
+
+    def move(self, angle, distance=15):
+        units = self.state.units(owner=1)
+        center = self.center(units)
+
+        offset = distance * np.array([math.cos(angle), math.sin(angle)])
+        position = list(center + offset)
+
+        return zero_ad.actions.walk(units, *position)
+
+    def player_unit_health(self, state, owner=1):
+        return sum(( unit.health(True) for unit in state.units(owner=owner)))
+
+    def reward(self, prev_state, state):
+        return self.damage_diff(prev_state, state)
+
+    def damage_diff(self, prev_state, state, caution_factor=5):
+        prev_enemy_health = self.player_unit_health(prev_state, 2)
+        enemy_health = self.player_unit_health(state, 2)
+        enemy_damage = prev_enemy_health - enemy_health
+
+        prev_player_health = self.player_unit_health(prev_state)
+        player_health = self.player_unit_health(state)
+        player_damage = prev_player_health - player_health
+        return enemy_damage - 5 * player_damage
