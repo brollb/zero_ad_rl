@@ -164,4 +164,4 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         prev_player_health = self.player_unit_health(prev_state)
         player_health = self.player_unit_health(state)
         player_damage = prev_player_health - player_health
-        return enemy_damage - 5 * player_damage
+        return enemy_damage - caution_factor * player_damage
