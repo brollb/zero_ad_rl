@@ -30,10 +30,13 @@ class BaseZeroADEnv(gym.Env):
 
         player_states = [player['state'] for player in self.state.data['players']]
         players_finished = [state != 'active' for state in player_states]
+
         done = any(players_finished)
         reward = self.reward(self.prev_state, self.state)
         if done:
             print('episode complete. reward:', reward)
+            print(player_states[1])
+            
         return self.observation(self.state), reward, done, {}
 
     def get_player_state(self, state, index):
@@ -152,9 +155,13 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
 
     def player_unit_health(self, state, owner=1):
         return sum(( unit.health(True) for unit in state.units(owner=owner)))
-
-    def reward(self, prev_state, state):
-        return self.damage_diff(prev_state, state)
+    
+    def reward(self, prev_state, state, penalty=0.1):
+        distance = np.linalg.norm(self.enemy_offset(state)) - np.linalg.norm(self.enemy_offset(prev_state))
+        if distance > 0:
+            return self.damage_diff(prev_state, state) - penalty
+        else:
+            return self.damage_diff(prev_state, state)
 
     def damage_diff(self, prev_state, state, caution_factor=5):
         prev_enemy_health = self.player_unit_health(prev_state, 2)
