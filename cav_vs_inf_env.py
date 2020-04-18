@@ -12,7 +12,7 @@ from zero_ad import MapType
 class BaseZeroADEnv(gym.Env):
     def __init__(self):
         self.step_count = 8
-        self.game = zero_ad.ZeroAD('0.0.0.0:50050')
+        self.game = zero_ad.ZeroAD('0.0.0.0:60050')
         self.prev_state = None
         self.state = None
 
