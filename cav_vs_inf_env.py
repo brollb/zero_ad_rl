@@ -7,7 +7,8 @@ import math
 from gym.spaces import Discrete, Box
 import numpy as np
 import zero_ad
-from zero_ad import MapType
+from os import path
+import json
 
 class BaseZeroADEnv(gym.Env):
     def __init__(self):
@@ -86,11 +87,11 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         return zero_ad.actions.attack(units, closest_enemy)
 
     def scenario_config(self):
-        config = zero_ad.ScenarioConfig('CavalryVsInfantry', type=MapType.SCENARIO)
-        config.set_victory_conditions(zero_ad.VictoryConditions.CONQUEST_UNITS)
-        config.add_player('Player 1', civ='spart', team=1)
-        config.add_player('Player 2', civ='spart', team=2)
-        return config
+        configs_dir = path.join(path.dirname(path.realpath(__file__)), 'scenario-configs')
+        config_path = path.join(configs_dir, 'CavalryVsInfantry.json')
+        with open(config_path) as f:
+            config = f.read()
+        return zero_ad.ScenarioConfig(playerID=1, content=config)
 
     def observation(self, state):
         dist = np.linalg.norm(self.enemy_offset(state))
