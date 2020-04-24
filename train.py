@@ -13,20 +13,18 @@ register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
 register_env('MinimapCavVsInf', lambda c: MinimapCavVsInfEnv(c))
 
 if __name__ == '__main__':
-    ray.init(num_gpus=1)
+    ray.init(num_gpus=0)
     tune.run(
-        "DQN",
-        name="tyler_DQN_minimapcavvsinf0908",
-        checkpoint_freq=100,
-        stop={"episode_reward_mean": -20},
+        "PPO",
+        name="tyler_PPO_minimapcavvsinf",
+        checkpoint_freq=200,
+        stop={"episode_reward_mean": 0},
         config={
             "env": "MinimapCavVsInf",
-            "num_gpus": 1,
+            "num_gpus": 0,
             "num_workers": 3,
             "eager": False,
         },
-        #num_samples=10,
-        #resources_per_trial={"cpu": 4, "gpu":0.25},
     )
     #parser = create_parser()
     #parser.set_defaults(env='CavalryVsInfantry')

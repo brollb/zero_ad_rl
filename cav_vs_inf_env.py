@@ -12,7 +12,7 @@ from zero_ad import MapType
 class BaseZeroADEnv(gym.Env):
     def __init__(self):
         self.step_count = 8
-        self.game = zero_ad.ZeroAD('0.0.0.0:60050')
+        self.game = zero_ad.ZeroAD('0.0.0.0:50050')
         self.prev_state = None
         self.state = None
 
@@ -86,7 +86,7 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         return zero_ad.actions.attack(units, closest_enemy)
 
     def scenario_config(self):
-        config = zero_ad.ScenarioConfig('CavalryVsInfantry', type=MapType.SCENARIO)
+        config = zero_ad.ScenarioConfig('CavalryVsInfantry-L2', type=MapType.SCENARIO)
         config.set_victory_conditions(zero_ad.VictoryConditions.CONQUEST_UNITS)
         config.add_player('Player 1', civ='spart', team=1)
         config.add_player('Player 2', civ='spart', team=2)
