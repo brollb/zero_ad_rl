@@ -13,35 +13,31 @@ register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
 register_env('MinimapCavVsInf', lambda c: MinimapCavVsInfEnv(c))
 
-# Curriculum learning goals
-REWARD_MEAN_GOAL = -10
-level = 1
+def invoke_if_defined(obj, method, *args):
+    fn = getattr(obj, method, None)
+    if fn is not None:
+        fn(*args[1:])
+
 
 def on_train_result(info):
-    global level
     result = info["result"]
-    if result["episode_reward_mean"] > REWARD_MEAN_GOAL:
-        print("increasing level!")
-        level += 1
+    reward_mean = result["episode_reward_mean"]
     trainer = info["trainer"]
     trainer.workers.foreach_worker(
         lambda ev: ev.foreach_env(
-            lambda env: env.set_cur_level(level)))
+            lambda env: invoke_if_defined(env, 'on_train_result', reward_mean)))
 
 if __name__ == '__main__':
-    ray.init(num_gpus=0)
-    tune.run(
-        "PPO",
-        name="tyler_PPO_minimapcavvsinf_curric",
-        checkpoint_freq=100,
-        checkpoint_at_end=True,
-        config={
-            "env": "MinimapCavVsInf",
-            "num_gpus": 0,
-            "num_workers": 3,
-            "eager": False,
-            "callbacks": {
-                    "on_train_result": on_train_result,
-                },
-        },
-    )
+    parser = create_parser()
+    parser.set_defaults(env='MinimapCavVsInf')
+    args = parser.parse_args()
+    config = args.config
+
+    if 'callbacks' not in config:
+        config['callbacks'] = {}
+
+    if 'on_train_result' not in config['callbacks']:
+         config['callbacks']['on_train_result'] = on_train_result
+    else:
+        print('on_train_result defined. Overriding default')
+    run(args, parser)

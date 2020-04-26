@@ -9,15 +9,19 @@ import numpy as np
 import zero_ad
 from zero_ad import MapType
 
+# LEVEL PREFIX
+LEVEL_PREFIX = 'CavalryVsInfantry-L'
+
 class BaseZeroADEnv(gym.Env):
     def __init__(self):
         self.step_count = 8
         self.game = zero_ad.ZeroAD('0.0.0.0:50050')
         self.prev_state = None
         self.state = None
+        self.cur_level = 1
 
     def reset(self):
-        self.prev_state = self.game.reset(self.scenario_config())
+        self.prev_state = self.game.reset(self.scenario_config(self.cur_level))
         self.state = self.game.step([zero_ad.actions.reveal_map()])
         return self.observation(self.state)
 
@@ -50,10 +54,13 @@ class BaseZeroADEnv(gym.Env):
     def observation(self, state):
         pass
 
-    def scenario_config(self):
+    def scenario_config(self, cur_level):
         pass
 
     def resolve_action(self, action_index):
+        pass
+
+    def on_train_result(self, info):
         pass
 
 class CavalryVsInfantryEnv(BaseZeroADEnv):
@@ -85,8 +92,8 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
 
         return zero_ad.actions.attack(units, closest_enemy)
 
-    def scenario_config(self):
-        config = zero_ad.ScenarioConfig('CavalryVsInfantry-L2', type=MapType.SCENARIO)
+    def scenario_config(self, cur_level):
+        config = zero_ad.ScenarioConfig(LEVEL_PREFIX+str(cur_level), type=MapType.SCENARIO)
         config.set_victory_conditions(zero_ad.VictoryConditions.CONQUEST_UNITS)
         config.add_player('Player 1', civ='spart', team=1)
         config.add_player('Player 2', civ='spart', team=2)
@@ -134,6 +141,7 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
     def __init__(self, config):
         super().__init__(config)
         self.action_space = Discrete(9)
+        self.REWARD_MEAN_GOAL = 1
 
     def resolve_action(self, action_index):
         if action_index == 8:
@@ -152,6 +160,10 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
 
     def player_unit_health(self, state, owner=1):
         return sum(( unit.health(True) for unit in state.units(owner=owner)))
+
+    def on_train_result(reward_mean):
+        if reward_mean > self.REWARD_MEAN_GOAL:
+            self.cur_level += 1
 
     def reward(self, prev_state, state):
         return self.damage_diff(prev_state, state)
