@@ -13,23 +13,35 @@ register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
 register_env('MinimapCavVsInf', lambda c: MinimapCavVsInfEnv(c))
 
+# Curriculum learning goals
+REWARD_MEAN_GOAL = -10
+level = 1
+
+def on_train_result(info):
+    global level
+    result = info["result"]
+    if result["episode_reward_mean"] > REWARD_MEAN_GOAL:
+        print("increasing level!")
+        level += 1
+    trainer = info["trainer"]
+    trainer.workers.foreach_worker(
+        lambda ev: ev.foreach_env(
+            lambda env: env.set_cur_level(level)))
+
 if __name__ == '__main__':
     ray.init(num_gpus=0)
     tune.run(
         "PPO",
-        name="tyler_PPO_minimapcavvsinf",
-        checkpoint_freq=20,
+        name="tyler_PPO_minimapcavvsinf_curric",
+        checkpoint_freq=100,
         checkpoint_at_end=True,
-        stop={"episode_reward_mean": 0},
         config={
             "env": "MinimapCavVsInf",
             "num_gpus": 0,
             "num_workers": 3,
             "eager": False,
+            "callbacks": {
+                    "on_train_result": on_train_result,
+                },
         },
     )
-    #parser = create_parser()
-    #parser.set_defaults(env='CavalryVsInfantry')
-    #args = parser.parse_args()
-    #print(args)
-    #run(args, parser)

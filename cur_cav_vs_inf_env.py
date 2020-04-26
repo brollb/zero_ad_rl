@@ -9,13 +9,16 @@ import numpy as np
 import zero_ad
 from zero_ad import MapType
 
+# LEVEL PREFIX
+LEVEL_PREFIX = 'CavalryVsInfantry-L'
+
 class BaseZeroADEnv(gym.Env):
     def __init__(self):
         self.step_count = 8
         self.game = zero_ad.ZeroAD('0.0.0.0:50050')
         self.prev_state = None
         self.state = None
-        self.cur_level = 'CavalryVsInfantry-L1'
+        self.cur_level = 1
 
     def reset(self):
         self.prev_state = self.game.reset(self.scenario_config(self.cur_level))
@@ -57,8 +60,8 @@ class BaseZeroADEnv(gym.Env):
     def resolve_action(self, action_index):
         pass
 
-    def set_cur_level(self):
-        pass
+    def set_cur_level(self, cur_level):
+        self.cur_level = cur_level
 
 class CavalryVsInfantryEnv(BaseZeroADEnv):
     def __init__(self, config):
@@ -90,7 +93,7 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         return zero_ad.actions.attack(units, closest_enemy)
 
     def scenario_config(self, cur_level):
-        config = zero_ad.ScenarioConfig(cur_level, type=MapType.SCENARIO)
+        config = zero_ad.ScenarioConfig(LEVEL_PREFIX+str(cur_level), type=MapType.SCENARIO)
         config.set_victory_conditions(zero_ad.VictoryConditions.CONQUEST_UNITS)
         config.add_player('Player 1', civ='spart', team=1)
         config.add_player('Player 2', civ='spart', team=2)
@@ -138,7 +141,6 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
     def __init__(self, config):
         super().__init__(config)
         self.action_space = Discrete(9)
-        self.total_player_damage = 0
 
     def resolve_action(self, action_index):
         if action_index == 8:
@@ -159,7 +161,9 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         return sum(( unit.health(True) for unit in state.units(owner=owner)))
 
     def reward(self, prev_state, state):
-        print(state.data)
+        return self.damage_diff(prev_state, state)
+
+    def damage_diff(self, prev_state, state, caution_factor=5):
         prev_enemy_health = self.player_unit_health(prev_state, 2)
         enemy_health = self.player_unit_health(state, 2)
         enemy_damage = prev_enemy_health - enemy_health
@@ -167,14 +171,4 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         prev_player_health = self.player_unit_health(prev_state)
         player_health = self.player_unit_health(state)
         player_damage = prev_player_health - player_health
-
-        player_states = [player['state'] for player in self.state.data['players']]
-        players_finished = [state != 'active' for state in player_states]
-        done = any(players_finished)
-        self.total_player_damage += player_damage
-        print(f"  player_damage: [{self.total_player_damage}]")
-        print(f"  player_damage_currently: [{player_damage}]")
-        if done:
-            print("   setting damage to zero")
-            self.total_player_damage = 0
-        return enemy_damage - player_damage
+        return enemy_damage - caution_factor * player_damage
