@@ -2,3 +2,4 @@ ray_results
 __pycache__
 *.pyc
 outputs/
+grapher.py
