@@ -1,0 +1,5 @@
+kept
+	units/spart_cavalry_javelinist_a
+
+removed
+	units/spart_champion_infantry_sword
