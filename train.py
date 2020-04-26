@@ -6,7 +6,8 @@ from ray.rllib.train import create_parser, run
 from ray.tune.registry import register_env
 import ray
 from ray import tune
-from cav_vs_inf_env import *
+#from cav_vs_inf_env import *
+from cur_cav_vs_inf_env import *
 
 register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
@@ -17,7 +18,8 @@ if __name__ == '__main__':
     tune.run(
         "PPO",
         name="tyler_PPO_minimapcavvsinf",
-        checkpoint_freq=200,
+        checkpoint_freq=20,
+        checkpoint_at_end=True,
         stop={"episode_reward_mean": 0},
         config={
             "env": "MinimapCavVsInf",
