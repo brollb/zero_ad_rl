@@ -10,10 +10,10 @@ register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
 register_env('MinimapCavVsInf', lambda c: MinimapCavVsInfEnv(c))
 
-def invoke_if_defined(obj, method, *args):
+def invoke_if_defined(obj, method, arg):
     fn = getattr(obj, method, None)
     if fn is not None:
-        fn(*args[1:])
+        fn(arg)
 
 
 def on_train_result(info):
