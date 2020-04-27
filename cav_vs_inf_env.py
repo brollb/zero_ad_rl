@@ -11,11 +11,13 @@ from os import path
 import json
 
 class BaseZeroADEnv(gym.Env):
-    def __init__(self):
+    def __init__(self, config):
         self.step_count = 8
-        self.game = zero_ad.ZeroAD('0.0.0.0:50050')
+        server_address = '0.0.0.0:50050'
+        self.game = zero_ad.ZeroAD(server_address)
         self.prev_state = None
         self.state = None
+        self.cum_reward = 0
 
     def reset(self):
         self.prev_state = self.game.reset(self.scenario_config())
@@ -33,9 +35,23 @@ class BaseZeroADEnv(gym.Env):
         players_finished = [state != 'active' for state in player_states]
         done = any(players_finished)
         reward = self.reward(self.prev_state, self.state)
+        self.cum_reward += reward
         if done:
-            print('episode complete. reward:', reward)
+            stats = self.episode_complete_stats(self.state)
+            stats_str = ' '
+            for (k, v) in stats.items():
+                stats_str += k + ': ' + str(v) + '; '
+
+            print(f'episode complete.{stats_str}')
+            self.cum_reward = 0
+
         return self.observation(self.state), reward, done, {}
+
+    def episode_complete_stats(self, state):
+        stats = {}
+        stats['reward'] = self.cum_reward
+        stats['win'] = self.get_player_state(state, 2) == 'defeated'
+        return stats
 
     def get_player_state(self, state, index):
         return state.data['players'][index]['state']
