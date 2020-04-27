@@ -155,6 +155,14 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
     def __init__(self, config):
         super().__init__(config)
         self.action_space = Discrete(9)
+        self.level = config.get('level', 1)
+        self.caution_factor = 5
+
+    def scenario_config_file(self):
+        if self.level < 7:
+            return 'CavalryVsInfantryL' + str(self.level)+ '.json'
+        else:
+            return 'CavalryVsInfantry.json'
 
     def resolve_action(self, action_index):
         if action_index == 8:
