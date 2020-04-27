@@ -59,7 +59,7 @@ class BaseZeroADEnv(gym.Env):
 
 class CavalryVsInfantryEnv(BaseZeroADEnv):
     def __init__(self, config):
-        super().__init__()
+        super().__init__(config)
         self.action_space = Discrete(2)
         self.observation_space = Box(0.0, 1.0, shape=(1, ), dtype=np.float32)
 
