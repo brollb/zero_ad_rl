@@ -102,9 +102,13 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
 
         return zero_ad.actions.attack(units, closest_enemy)
 
+    def scenario_config_file(self):
+        return 'CavalryVsInfantry.json'
+
     def scenario_config(self):
         configs_dir = path.join(path.dirname(path.realpath(__file__)), 'scenario-configs')
-        config_path = path.join(configs_dir, 'CavalryVsInfantry.json')
+        filename = self.scenario_config_file()
+        config_path = path.join(configs_dir, filename)
         with open(config_path) as f:
             config = f.read()
         return zero_ad.ScenarioConfig(playerID=1, content=config)
