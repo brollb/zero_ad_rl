@@ -13,11 +13,15 @@ import json
 class BaseZeroADEnv(gym.Env):
     def __init__(self, config):
         self.step_count = 8
-        server_address = '0.0.0.0:50050'
+        server_address = self.address(config.worker_index)
         self.game = zero_ad.ZeroAD(server_address)
         self.prev_state = None
         self.state = None
         self.cum_reward = 0
+
+    def address(self, worker_index):
+        port = 50049 + worker_index
+        return f'0.0.0.0:{port}'
 
     def reset(self):
         self.prev_state = self.game.reset(self.scenario_config())
