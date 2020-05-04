@@ -160,7 +160,18 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         super().__init__(config)
         self.action_space = Discrete(9)
         self.level = config.get('level', 1)
-        self.caution_factor = 5
+        self.caution_factor = 10
+
+    def on_train_result(self, mean_reward):
+        max_reward = self.max_reward()
+        min_reward = self.min_reward()
+        percent_to_advance = 0.85
+        reward_to_advance = min_reward + percent_to_advance * (max_reward - min_reward)
+        if mean_reward > reward_to_advance:
+            self.level += 1
+            print('advancing to level', self.level)
+            if self.level > 5:
+                self.caution_factor = 5
 
     def scenario_config_file(self):
         if self.level < 7:
@@ -187,14 +198,37 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         return sum(( unit.health(True) for unit in state.units(owner=owner)))
 
     def reward(self, prev_state, state):
-        return self.damage_diff(prev_state, state)
+        return self.damage_diff(prev_state, state) - 0.0001
 
-    def damage_diff(self, prev_state, state, caution_factor=5):
+    def max_reward(self):
+        enemy_units = min(self.level, 7)
+        return enemy_units
+
+    def min_reward(self):
+        player_units = 5
+        return -self.caution_factor * player_units
+
+    def damage_diff(self, prev_state, state):
         prev_enemy_health = self.player_unit_health(prev_state, 2)
         enemy_health = self.player_unit_health(state, 2)
         enemy_damage = prev_enemy_health - enemy_health
+        assert(enemy_damage >= 0, f'Enemy damage is negative: {enemy_damage}')
 
         prev_player_health = self.player_unit_health(prev_state)
         player_health = self.player_unit_health(state)
         player_damage = prev_player_health - player_health
-        return enemy_damage - caution_factor * player_damage
+        assert(player_damage >= 0, f'Player damage is negative: {player_damage}')
+        return enemy_damage - self.caution_factor * player_damage
+
+    def episode_complete_stats(self, state):
+        stats = super().episode_complete_stats(state)
+        stats['reward_ratio'] = (self.cum_reward - self.min_reward())/(self.max_reward() - self.min_reward())
+
+        if stats['reward_ratio'] > 1:
+            print('---------- Reward is above max expected value -----------')
+            print(self.cum_reward, 'vs', self.max_reward())
+            prev_enemy_health = self.player_unit_health(state, 2)
+            print('enemy health:', prev_enemy_health)
+
+        stats['level'] = self.level
+        return stats
