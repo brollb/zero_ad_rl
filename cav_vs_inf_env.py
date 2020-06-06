@@ -20,8 +20,8 @@ class BaseZeroADEnv(gym.Env):
         self.cum_reward = 0
 
     def address(self, worker_index):
-        port = 50049 + worker_index
-        return f'0.0.0.0:{port}'
+        port = 5999 + worker_index
+        return f'http://127.0.0.1:{port}'
 
     def reset(self):
         self.prev_state = self.game.reset(self.scenario_config())
@@ -115,7 +115,7 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         config_path = path.join(configs_dir, filename)
         with open(config_path) as f:
             config = f.read()
-        return zero_ad.ScenarioConfig(playerID=1, content=config)
+        return config
 
     def observation(self, state):
         dist = np.linalg.norm(self.enemy_offset(state))
