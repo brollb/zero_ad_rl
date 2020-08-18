@@ -12,6 +12,7 @@ import json
 
 class BaseZeroADEnv(gym.Env):
     def __init__(self, config):
+        self.config = config
         self.step_count = 8
         server_address = self.address(config.worker_index)
         self.game = zero_ad.ZeroAD(server_address)
@@ -20,7 +21,7 @@ class BaseZeroADEnv(gym.Env):
         self.cum_reward = 0
 
     def address(self, worker_index):
-        port = 5999 + worker_index
+        port = 6000 + worker_index
         return f'http://127.0.0.1:{port}'
 
     def reset(self):
