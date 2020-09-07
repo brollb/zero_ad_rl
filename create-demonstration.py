@@ -7,6 +7,8 @@ from cav_vs_inf_env import *
 import argparse
 import json
 import pickle
+from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
+from ray.rllib.offline.json_writer import JsonWriter
 
 register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
 register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
@@ -54,13 +56,14 @@ if __name__ == '__main__':
     else:
         target_env = None
 
-    trajectories = []
     prev_obs = None
     prev_action = None
+    batch_builder = SampleBatchBuilder()
+    writer = JsonWriter(args.out)
     with open(args.states, 'r') as states_file:
         states = (GameState(json.loads(line), env.game) for line in states_file)
         trajectory = []
-        for state in states:
+        for (t, state) in enumerate(states):
             if is_game_over(state):
                 continue
 
@@ -77,9 +80,20 @@ if __name__ == '__main__':
 
             if prev_obs is not None:
                 trajectory.append([prev_obs, prev_action, obs])
+                batch_builder.add_values(
+                    t=t,
+                    eps_id=0,
+                    agent_index=0,
+                    obs=prev_obs,
+                    actions=action,
+                    action_prob=1.0,  # put the true action probability here
+                    rewards=0,
+                    prev_actions=prev_action,
+                    prev_rewards=0,
+                    dones=False,  # TODO
+                    infos=None,
+                    new_obs=obs)
 
             prev_obs = obs
             prev_action = action
-        trajectories.append(trajectory)
-
-    pickle.dump(trajectories, open(args.out, 'wb'))
+        writer.write(batch_builder.build_and_reset())
