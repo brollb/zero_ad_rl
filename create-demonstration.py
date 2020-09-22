@@ -24,6 +24,7 @@ def closest_action(env, command):
     if command['type'] == 'attack':
         return 8
 
+    # FIXME: These should be relative first!!
     possible_actions = [(i, env.resolve_action(i)) for i in range(8)]
     possible_actions.sort(key=lambda pair: distance(walk_target(pair[1]), walk_target(command)))
     return possible_actions[0][0]
@@ -34,7 +35,7 @@ def is_game_over(state):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('checkpoint')
-    parser.add_argument('states', help='states.jsonl file to generate demonstration from')  # TODO: var args?
+    parser.add_argument('states', help='states.jsonl file to generate demonstration from', nargs='*')
     parser.add_argument('--run')
     parser.add_argument('--env')
     parser.add_argument('--url', default='http://127.0.0.1:6000',
@@ -60,40 +61,41 @@ if __name__ == '__main__':
     prev_action = None
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(args.out)
-    with open(args.states, 'r') as states_file:
-        states = (GameState(json.loads(line), env.game) for line in states_file)
-        trajectory = []
-        for (t, state) in enumerate(states):
-            if is_game_over(state):
-                continue
+    for states_path in args.states:
+        with open(states_path, 'r') as states_file:
+            states = (GameState(json.loads(line), env.game) for line in states_file)
+            trajectory = []
+            for (t, state) in enumerate(states):
+                if is_game_over(state):
+                    continue
 
-            env.prev_state = env.state
-            env.state = state
-            obs = env.observation(state)
-            action = agent.compute_action(obs)
-            command = env.resolve_action(action)
-            if target_env:
-                target_env.prev_state = target_env.state
-                target_env.state = state
-                obs = target_env.observation(state)
-                action = closest_action(target_env, command)
+                env.prev_state = env.state
+                env.state = state
+                obs = env.observation(state)
+                action = agent.compute_action(obs)
+                command = env.resolve_action(action)
+                if target_env:
+                    target_env.prev_state = target_env.state
+                    target_env.state = state
+                    obs = target_env.observation(state)
+                    action = closest_action(target_env, command)
 
-            if prev_obs is not None:
-                trajectory.append([prev_obs, prev_action, obs])
-                batch_builder.add_values(
-                    t=t,
-                    eps_id=0,
-                    agent_index=0,
-                    obs=prev_obs,
-                    actions=action,
-                    action_prob=1.0,  # put the true action probability here
-                    rewards=0,
-                    prev_actions=prev_action,
-                    prev_rewards=0,
-                    dones=False,  # TODO
-                    infos=None,
-                    new_obs=obs)
+                if prev_obs is not None:
+                    trajectory.append([prev_obs, prev_action, obs])
+                    batch_builder.add_values(
+                        t=t,
+                        eps_id=0,
+                        agent_index=0,
+                        obs=prev_obs,
+                        actions=action,
+                        action_prob=1.0,  # put the true action probability here
+                        rewards=0,
+                        prev_actions=prev_action,
+                        prev_rewards=0,
+                        dones=False,  # TODO
+                        infos=None,
+                        new_obs=obs)
 
-            prev_obs = obs
-            prev_action = action
+                prev_obs = obs
+                prev_action = action
         writer.write(batch_builder.build_and_reset())
