@@ -42,6 +42,7 @@ if __name__ == '__main__':
             help='0 AD game server URL (running with --rlinterface flag)')
     parser.add_argument('--out', default='demonstrations')
     parser.add_argument('--target-env')
+    parser.add_argument('--skip-count', default=8, type=int)
 
     args = parser.parse_args()
 
@@ -63,7 +64,9 @@ if __name__ == '__main__':
     writer = JsonWriter(args.out)
     for states_path in args.states:
         with open(states_path, 'r') as states_file:
-            states = (GameState(json.loads(line), env.game) for line in states_file)
+            states_file.readline()  # skip the first
+            lines = (line for (index, line) in enumerate(states_file) if index % args.skip_count == 0)
+            states = (GameState(json.loads(line), env.game) for line in lines)
             trajectory = []
             for (t, state) in enumerate(states):
                 if is_game_over(state):
