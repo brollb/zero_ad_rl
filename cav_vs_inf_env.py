@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from PIL import Image
 import gym
 import math
 from gym.spaces import Discrete, Box
@@ -10,8 +11,32 @@ import zero_ad
 from os import path
 import json
 
+class StateBuilder():
+    def __init__(self, space):
+        self.space = space
+
+    def from_json(self, state):
+        pass
+
+    def to_image(self, state):
+        return Image.fromarray(self.from_json(state))
+
+class ActionBuilder():
+    def __init__(self, space):
+        self.space = space
+
+    def to_json(self, action, state):
+        pass
+
+    def to_image(self, action):
+        pass
+
 class BaseZeroADEnv(gym.Env):
-    def __init__(self, config):
+    def __init__(self, config, action_builder, state_builder):
+        self.actions = action_builder
+        self.states = state_builder
+        self.action_space = self.actions.space
+        self.observation_space = self.states.space
         self.config = config
         self.step_count = 8
         server_address = self.address(config.worker_index)
@@ -30,7 +55,7 @@ class BaseZeroADEnv(gym.Env):
         return self.observation(self.state)
 
     def step(self, action_index):
-        action = self.resolve_action(action_index)
+        action = self.actions.to_json(action_index, self.state)
         self.prev_state = self.state
         self.state = self.game.step([action])
         for _ in range(self.step_count - 1):
@@ -70,42 +95,61 @@ class BaseZeroADEnv(gym.Env):
             return 0
 
     def observation(self, state):
-        pass
+        return self.states.from_json(state)
 
     def scenario_config(self):
         pass
 
-    def resolve_action(self, action_index):
-        pass
+def center(units):
+    positions = np.array([unit.position() for unit in units])
+    return np.mean(positions, axis=0)
 
-class CavalryVsInfantryEnv(BaseZeroADEnv):
-    def __init__(self, config):
-        super().__init__(config)
-        self.action_space = Discrete(2)
-        self.observation_space = Box(0.0, 1.0, shape=(1, ), dtype=np.float32)
+def enemy_offset(state):
+    player_units = state.units(owner=1)
+    enemy_units = state.units(owner=2)
+    return center(enemy_units) - center(player_units)
 
-    def resolve_action(self, action_index):
-        return self.retreat() if action_index == 0 else self.attack()
+class EnemyDistance(StateBuilder):
+    def __init__(self):
+        space = Box(0.0, 1.0, shape=(1, ), dtype=np.float32)
+        super().__init__(space)
 
-    def retreat(self):
-        units = self.state.units(owner=1)
-        center = self.center(units)
-        offset = self.enemy_offset(self.state)
+    def from_json(self, state):
+        dist = np.linalg.norm(enemy_offset(state))
+        max_dist = 80
+        normalized_dist = dist/max_dist if not np.isnan(dist/max_dist) else 1.
+        return np.array([min(normalized_dist, 1.)])
+
+class AttackRetreat(ActionBuilder):
+    def __init__(self):
+        super().__init__(Discrete(2))
+
+    def to_json(self, action_index, state):
+        return self.retreat(state) if action_index == 0 else self.attack(state)
+
+    def retreat(self, state):
+        units = state.units(owner=1)
+        center_pt = center(units)
+        offset = enemy_offset(state)
         rel_position = 20 * (offset / np.linalg.norm(offset, ord=2))
-        position = list(center - rel_position)
+        position = list(center_pt - rel_position)
         return zero_ad.actions.walk(units, *position)
 
-    def attack(self):
-        units = self.state.units(owner=1)
-        center = self.center(units)
+    def attack(self, state):
+        units = state.units(owner=1)
+        center_pt = center(units)
 
-        enemy_units = self.state.units(owner=2)
+        enemy_units = state.units(owner=2)
         enemy_positions = np.array([unit.position() for unit in enemy_units])
-        dists = np.linalg.norm(enemy_positions - center, ord=2, axis=1)
+        dists = np.linalg.norm(enemy_positions - center_pt, ord=2, axis=1)
         closest_index = np.argmin(dists)
         closest_enemy = enemy_units[closest_index]
 
         return zero_ad.actions.attack(units, closest_enemy)
+
+class CavalryVsInfantryEnv(BaseZeroADEnv):
+    def __init__(self, config):
+        super().__init__(config, AttackRetreat(), EnemyDistance())
 
     def scenario_config_file(self):
         return 'CavalryVsInfantry.json'
@@ -118,27 +162,12 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
             config = f.read()
         return config
 
-    def observation(self, state):
-        dist = np.linalg.norm(self.enemy_offset(state))
-        max_dist = 80
-        normalized_dist = dist/max_dist if not np.isnan(dist/max_dist) else 1.
-        return np.array([min(normalized_dist, 1.)])
+class Minimap(StateBuilder):
+    def __init__(self):
+        space = Box(0.0, 1.0, shape=(84, 84, 3), dtype=np.float32)
+        super.__init__(space)
 
-    def enemy_offset(self, state):
-        player_units = state.units(owner=1)
-        enemy_units = state.units(owner=2)
-        return self.center(enemy_units) - self.center(player_units)
-
-    def center(self, units):
-        positions = np.array([unit.position() for unit in units])
-        return np.mean(positions, axis=0)
-
-class SimpleMinimapCavVsInfEnv(CavalryVsInfantryEnv):
-    def __init__(self, config):
-        super().__init__(config)
-        self.observation_space = Box(0.0, 1.0, shape=(84, 84, 3), dtype=np.float32)
-
-    def observation(self, state):
+    def from_json(self, state):
         obs = np.zeros((84, 84, 3))
         my_units = state.units(owner=1)
         center = self.center(my_units)
@@ -156,10 +185,34 @@ class SimpleMinimapCavVsInfEnv(CavalryVsInfantryEnv):
 
         return obs
 
-class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
+class SimpleMinimapCavVsInfEnv(BaseZeroADEnv):
     def __init__(self, config):
-        super().__init__(config)
-        self.action_space = Discrete(9)
+        super().__init__(config, AttackRetreat(), Minimap())
+
+class AttackAndMove(AttackRetreat):
+    def __init__(self):
+        space = Discrete(9)
+        super.__init__(space)
+
+    def to_json(self, action_index, state):
+        if action_index == 8:
+            return self.attack(state)
+        else:
+            return self.move(state, 2 * math.pi * action_index/8)
+
+    def move(self, state, angle, distance=15):
+        units = state.units(owner=1)
+        center_pt = center(units)
+
+        offset = distance * np.array([math.cos(angle), math.sin(angle)])
+        position = list(center_pt + offset)
+
+        return zero_ad.actions.walk(units, *position)
+
+
+class MinimapCavVsInfEnv(BaseZeroADEnv):
+    def __init__(self, config):
+        super().__init__(config, AttackAndMove(), Minimap())
         self.level = config.get('level', 1)
         self.caution_factor = 10
 
@@ -180,21 +233,6 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         else:
             return 'CavalryVsInfantry.json'
 
-    def resolve_action(self, action_index):
-        if action_index == 8:
-            return self.attack()
-        else:
-            return self.move(2 * math.pi * action_index/8)
-
-    def move(self, angle, distance=15):
-        units = self.state.units(owner=1)
-        center = self.center(units)
-
-        offset = distance * np.array([math.cos(angle), math.sin(angle)])
-        position = list(center + offset)
-
-        return zero_ad.actions.walk(units, *position)
-
     def player_unit_health(self, state, owner=1):
         return sum(( unit.health(True) for unit in state.units(owner=owner)))
 
@@ -213,12 +251,12 @@ class MinimapCavVsInfEnv(SimpleMinimapCavVsInfEnv):
         prev_enemy_health = self.player_unit_health(prev_state, 2)
         enemy_health = self.player_unit_health(state, 2)
         enemy_damage = prev_enemy_health - enemy_health
-        assert(enemy_damage >= 0, f'Enemy damage is negative: {enemy_damage}')
+        assert enemy_damage >= 0, f'Enemy damage is negative: {enemy_damage}'
 
         prev_player_health = self.player_unit_health(prev_state)
         player_health = self.player_unit_health(state)
         player_damage = prev_player_health - player_health
-        assert(player_damage >= 0, f'Player damage is negative: {player_damage}')
+        assert player_damage >= 0, f'Player damage is negative: {player_damage}'
         return enemy_damage - self.caution_factor * player_damage
 
     def episode_complete_stats(self, state):
