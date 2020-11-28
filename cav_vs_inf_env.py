@@ -19,7 +19,8 @@ class StateBuilder():
         pass
 
     def to_image(self, state):
-        return Image.fromarray(self.from_json(state))
+        arry = self.from_json(state)
+        return Image.fromarray(arry)
 
 class ActionBuilder():
     def __init__(self, space):
@@ -165,17 +166,17 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
 class Minimap(StateBuilder):
     def __init__(self):
         space = Box(0.0, 1.0, shape=(84, 84, 3), dtype=np.float32)
-        super.__init__(space)
+        super().__init__(space)
 
     def from_json(self, state):
         obs = np.zeros((84, 84, 3))
         my_units = state.units(owner=1)
-        center = self.center(my_units)
+        center_pt = center(my_units)
         if len(my_units) > 0:
-            min_x = center[0] - 42
-            max_x = center[0] + 42
-            min_z = center[1] - 42
-            max_z = center[1] + 42
+            min_x = center_pt[0] - 42
+            max_x = center_pt[0] + 42
+            min_z = center_pt[1] - 42
+            max_z = center_pt[1] + 42
             for unit in state.units():
                 pos = unit.position()
                 if min_x < pos[0] < max_x and min_z < pos[1] < max_z:
@@ -184,6 +185,10 @@ class Minimap(StateBuilder):
                     obs[x][z][int(unit.owner())] = 1.
 
         return obs
+
+    def to_image(self, state):
+        arry = 255*self.from_json(state)
+        return Image.fromarray(arry.astype(np.uint8))
 
 class SimpleMinimapCavVsInfEnv(BaseZeroADEnv):
     def __init__(self, config):
