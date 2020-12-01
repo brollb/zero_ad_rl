@@ -122,8 +122,8 @@ class EnemyDistance(StateBuilder):
         return np.array([min(normalized_dist, 1.)])
 
 class AttackRetreat(ActionBuilder):
-    def __init__(self):
-        super().__init__(Discrete(2))
+    def __init__(self, space=Discrete(2)):
+        super().__init__(space)
 
     def to_json(self, action_index, state):
         return self.retreat(state) if action_index == 0 else self.attack(state)
@@ -197,7 +197,7 @@ class SimpleMinimapCavVsInfEnv(BaseZeroADEnv):
 class AttackAndMove(AttackRetreat):
     def __init__(self):
         space = Discrete(9)
-        super.__init__(space)
+        super().__init__(space)
 
     def to_json(self, action_index, state):
         if action_index == 8:
