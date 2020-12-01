@@ -25,7 +25,7 @@ def closest_action(env, command):
         return 8
 
     # FIXME: These should be relative first!!
-    possible_actions = [(i, env.resolve_action(i)) for i in range(8)]
+    possible_actions = [(i, env.actions.to_json(i, env.state)) for i in range(8)]
     possible_actions.sort(key=lambda pair: distance(walk_target(pair[1]), walk_target(command)))
     return possible_actions[0][0]
 
