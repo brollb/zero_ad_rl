@@ -1,5 +1,4 @@
-# TODO: Given a trajectory, create images of the states...
-# TODO: For now, assume a bunch of stuff?
+# TODO: For now, assume minimap states
 from cav_vs_inf_env import Minimap
 import zero_ad
 import argparse
@@ -13,7 +12,6 @@ if __name__ == '__main__':
     parser.add_argument('states', help='states.jsonl file to generate demonstration from')
     parser.add_argument('--url', default='http://127.0.0.1:6000',
             help='0 AD game server URL (running with --rlinterface flag)')
-    parser.add_argument('--run')
     parser.add_argument('--out', default=None)
 
     args = parser.parse_args()
