@@ -22,11 +22,6 @@ def closest_action(actions, state, command):
     # FIXME: These should be relative first!!
     possible_actions = [(i, actions.to_json(i, state)) for i in range(8)]
     possible_actions.sort(key=lambda pair: distance(walk_target(pair[1]), walk_target(command)))
-    print('>>> closest action to', command)
-    print('options:')
-    for (i, action) in possible_actions:
-        print('\t', action, f'({distance(walk_target(action), walk_target(command))})')
-    print('closest:', possible_actions[0][1])
 
     return possible_actions[0][0]
 
@@ -44,7 +39,6 @@ def render_move_action(state, command, color='#777777', image=None):
     center_pt = center(state.units(owner=1))
     target = np.array([command['x'], command['z']])
     rel_target = target-center_pt + 42
-    print(rel_target)
     draw = ImageDraw.Draw(image)
     # TODO: for each action, render stuff
     draw.line((42, 42, rel_target[0], rel_target[1]), fill=color)
@@ -83,7 +77,3 @@ if __name__ == '__main__':
 
             image = render_move_action(state, new_action_json, '#ff0000', image)
             image.save(path.join(outdir, f'action-{i}.png'), format='PNG')
-
-            #print(i, render_move_action(state, new_action_json))
-            # TODO render the closest directional action
-            #image.save(path.join(outdir, f'state-{i}.png'), format='PNG')
