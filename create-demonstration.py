@@ -51,6 +51,7 @@ if __name__ == '__main__':
     agent = cls(env=args.env)
     agent.restore(args.checkpoint)
 
+    # TODO: Refactor this...
     env = agent.workers.local_worker().env
     if args.target_env:
         env_creator = _global_registry.get(ENV_CREATOR, args.target_env)
@@ -58,10 +59,13 @@ if __name__ == '__main__':
     else:
         target_env = None
 
+    #create_demonstration(agent, states_path, target_env)  # FIXME: finish this
+
     prev_obs = None
     prev_action = None
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(args.out)
+    debug_count = 0
     for states_path in args.states:
         with open(states_path, 'r') as states_file:
             states_file.readline()  # skip the first
@@ -76,7 +80,8 @@ if __name__ == '__main__':
                 env.state = state
                 obs = env.observation(state)
                 action = agent.compute_action(obs)
-                command = env.resolve_action(action)
+                #print(obs, action)
+                command = env.actions.to_json(action, state)
                 if target_env:
                     target_env.prev_state = target_env.state
                     target_env.state = state
@@ -85,13 +90,17 @@ if __name__ == '__main__':
 
                 if prev_obs is not None:
                     trajectory.append([prev_obs, prev_action, obs])
+                    # FIXME: Am I using this incorrectly?
+                    print('prev_obs', prev_obs)
+                    print('action', action)
+                    print('prev_action', prev_action)
                     batch_builder.add_values(
                         t=t,
                         eps_id=0,
                         agent_index=0,
                         obs=prev_obs,
                         actions=action,
-                        action_prob=1.0,  # put the true action probability here
+                        action_prob=1.0,  # TODO: put the true action probability here
                         rewards=0,
                         prev_actions=prev_action,
                         prev_rewards=0,
@@ -101,4 +110,5 @@ if __name__ == '__main__':
 
                 prev_obs = obs
                 prev_action = action
+                debug_count += 0
         writer.write(batch_builder.build_and_reset())
