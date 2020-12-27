@@ -66,7 +66,7 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
         return 'CavalryVsInfantry.json'
 
     def scenario_config(self):
-        configs_dir = path.join(path.dirname(path.realpath(__file__)), 'scenario-configs')
+        configs_dir = path.join(path.dirname(path.realpath(__file__)), 'scenarios')
         filename = self.scenario_config_file()
         config_path = path.join(configs_dir, filename)
         with open(config_path) as f:
