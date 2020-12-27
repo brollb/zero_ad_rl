@@ -1,11 +1,13 @@
 # TODO: For now, assume minimap states
-from cav_vs_inf_env import Minimap
 import zero_ad
 import argparse
 import json
 import pickle
 import os
 from os import path
+from .env import register_envs
+
+register_envs()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

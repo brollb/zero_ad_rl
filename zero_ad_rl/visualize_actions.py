@@ -1,4 +1,4 @@
-from cav_vs_inf_env import AttackRetreat, AttackAndMove
+from .env import AttackRetreat, AttackAndMove
 import numpy as np
 import zero_ad
 import argparse

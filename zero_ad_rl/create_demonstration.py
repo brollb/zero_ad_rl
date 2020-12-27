@@ -3,16 +3,14 @@ import ray
 import gym
 from ray.rllib.agents.registry import get_agent_class
 from ray.tune.registry import register_env, _global_registry, ENV_CREATOR
-from cav_vs_inf_env import *
+from .env import register_envs
 import argparse
 import json
 import pickle
 from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
 from ray.rllib.offline.json_writer import JsonWriter
 
-register_env('CavalryVsInfantry', lambda c: CavalryVsInfantryEnv(c))
-register_env('SimpleMinimapCavVsInf', lambda c: SimpleMinimapCavVsInfEnv(c))
-register_env('MinimapCavVsInf', lambda c: MinimapCavVsInfEnv(c))
+register_envs()
 
 def walk_target(command):
     return (command['x'], command['z'])
