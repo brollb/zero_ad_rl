@@ -30,6 +30,38 @@ def closest_action(env, command):
 def is_game_over(state):
     return any([player['state'] != 'active' for player in state.data['players']])
 
+def parse_states_file(states_file, env, skip_count=1):
+    states_file.readline()  # skip the first
+    lines = (line for (index, line) in enumerate(states_file) if index % skip_count == 0)
+    states = (GameState(json.loads(line), env.game) for line in lines)
+    return states
+
+def annotated_trajectory(states, agent, env, target_env=None):
+    trajectory = []
+    prev_obs = None
+    prev_action = None
+    for state in states:
+        if is_game_over(state):
+            continue
+
+        env.prev_state = env.state
+        env.state = state
+        obs = env.observation(state)
+        action = agent.compute_action(obs)
+        print('computing action:', action)
+        command = env.actions.to_json(action, state)
+        if target_env:
+            target_env.prev_state = target_env.state
+            target_env.state = state
+            obs = target_env.observation(state)
+            action = closest_action(target_env, command)
+
+        if prev_obs is not None:
+            yield prev_obs, int(prev_action), obs
+
+        prev_obs = obs
+        prev_action = action
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('checkpoint')
@@ -57,56 +89,31 @@ if __name__ == '__main__':
     else:
         target_env = None
 
-    #create_demonstration(agent, states_path, target_env)  # FIXME: finish this
-
-    prev_obs = None
-    prev_action = None
     batch_builder = SampleBatchBuilder()
     writer = JsonWriter(args.out)
-    debug_count = 0
     for states_path in args.states:
         with open(states_path, 'r') as states_file:
-            states_file.readline()  # skip the first
-            lines = (line for (index, line) in enumerate(states_file) if index % args.skip_count == 0)
-            states = (GameState(json.loads(line), env.game) for line in lines)
-            trajectory = []
-            for (t, state) in enumerate(states):
-                if is_game_over(state):
-                    continue
-
-                env.prev_state = env.state
-                env.state = state
-                obs = env.observation(state)
-                action = agent.compute_action(obs)
-                #print(obs, action)
-                command = env.actions.to_json(action, state)
-                if target_env:
-                    target_env.prev_state = target_env.state
-                    target_env.state = state
-                    obs = target_env.observation(state)
-                    action = closest_action(target_env, command)
-
-                if prev_obs is not None:
-                    trajectory.append([prev_obs, prev_action, obs])
-                    # FIXME: Am I using this incorrectly?
-                    print('prev_obs', prev_obs)
-                    print('action', action)
-                    print('prev_action', prev_action)
-                    batch_builder.add_values(
-                        t=t,
-                        eps_id=0,
-                        agent_index=0,
-                        obs=prev_obs,
-                        actions=action,
-                        action_prob=1.0,  # TODO: put the true action probability here
-                        rewards=0,
-                        prev_actions=prev_action,
-                        prev_rewards=0,
-                        dones=False,  # TODO
-                        infos=None,
-                        new_obs=obs)
-
-                prev_obs = obs
+            states = parse_states_file(states_file, env, args.skip_count)
+            trajectory = annotated_trajectory(states, agent, env, target_env)
+            prev_action = None
+            for (t, (obs, action, new_obs)) in enumerate(trajectory):
+                # FIXME: Am I using this incorrectly?
+                print('obs', obs, type(obs))
+                print('action', action, type(action))
+                print('new_obs', new_obs, type(new_obs))
+                batch_builder.add_values(
+                    t=t,
+                    eps_id=0,
+                    agent_index=0,
+                    obs=obs,
+                    actions=action,
+                    action_prob=1.0,  # TODO: put the true action probability here
+                    rewards=0,
+                    prev_actions=prev_action,
+                    prev_rewards=0,
+                    dones=False,  # TODO
+                    infos=None,
+                    new_obs=new_obs)
                 prev_action = action
-                debug_count += 0
+
         writer.write(batch_builder.build_and_reset())
