@@ -10,8 +10,6 @@ import pickle
 from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
 from ray.rllib.offline.json_writer import JsonWriter
 
-register_envs()
-
 def walk_target(command):
     return (command['x'], command['z'])
 
@@ -63,6 +61,8 @@ def annotated_trajectory(states, agent, env, target_env=None):
         prev_action = action
 
 if __name__ == '__main__':
+    register_envs()
+
     parser = argparse.ArgumentParser()
     parser.add_argument('checkpoint')
     parser.add_argument('states', help='states.jsonl file to generate demonstration from', nargs='*')
