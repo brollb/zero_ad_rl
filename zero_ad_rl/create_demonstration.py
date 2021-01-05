@@ -1,7 +1,7 @@
 from zero_ad import GameState
 import ray
 import gym
-from ray.rllib.agents.registry import get_agent_class
+from .agent import get_agent_class
 from ray.tune.registry import register_env, _global_registry, ENV_CREATOR
 from .env import register_envs
 import argparse
