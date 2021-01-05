@@ -1,8 +1,8 @@
 import ray
 import argparse
 from ray.rllib.offline.json_reader import JsonReader
-from ray.rllib.agents.registry import get_agent_class
 from .env import register_envs
+from .agent import get_agent_class
 
 def count_lines(filename):
     line_count = 0
@@ -15,7 +15,7 @@ def count_lines(filename):
 def count_batches(files):
     return sum((count_lines(filename) for filename in files))
 
-def score_demonstrations(agent, files):
+def score_demonstrations(agent, files, verbose=False):
     reader = JsonReader(files)
     num_batches = count_batches(files)
     correct = 0
@@ -28,6 +28,8 @@ def score_demonstrations(agent, files):
             if action == expected_action:
                 correct += 1
             total += 1
+            if verbose:
+                print(f'{obs} {action}')
 
     return correct, total
 
@@ -41,6 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--env')
     parser.add_argument('--url', default='http://127.0.0.1:6000',
             help='0 AD game server URL (running with --rlinterface flag)')
+    parser.add_argument('--verbose', action='store_true')
 
     args = parser.parse_args()
 
@@ -51,5 +54,5 @@ if __name__ == '__main__':
 
     env = agent.workers.local_worker().env
 
-    correct, total = score_demonstrations(agent, args.files)
+    correct, total = score_demonstrations(agent, args.files, args.verbose)
     print(f'{correct/total} ({correct}/{total})')
