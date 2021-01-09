@@ -7,6 +7,7 @@ from .env import register_envs
 import argparse
 import json
 import pickle
+import math
 from ray.rllib.evaluation.sample_batch_builder import SampleBatchBuilder
 from ray.rllib.offline.json_writer import JsonWriter
 
@@ -46,7 +47,6 @@ def annotated_trajectory(states, agent, env, target_env=None):
         env.state = state
         obs = env.observation(state)
         action = agent.compute_action(obs)
-        print('computing action:', action)
         command = env.actions.to_json(action, state)
         if target_env:
             target_env.prev_state = target_env.state
@@ -97,10 +97,6 @@ if __name__ == '__main__':
             trajectory = annotated_trajectory(states, agent, env, target_env)
             prev_action = None
             for (t, (obs, action, new_obs)) in enumerate(trajectory):
-                # FIXME: Am I using this incorrectly?
-                print('obs', obs, type(obs))
-                print('action', action, type(action))
-                print('new_obs', new_obs, type(new_obs))
                 batch_builder.add_values(
                     t=t,
                     eps_id=0,

@@ -1,3 +1,5 @@
 ray_results
 __pycache__
 data
+zero_ad_rl.egg-info
+tmp/
