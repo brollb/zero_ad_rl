@@ -73,6 +73,10 @@ class CavalryVsInfantryEnv(BaseZeroADEnv):
             config = f.read()
         return config
 
+class CavalryVsSpearmenEnv(CavalryVsInfantryEnv):
+    def scenario_config_file(self):
+        return 'CavalryVsSpearmen.json'
+
 class Minimap(StateBuilder):
     def __init__(self):
         space = Box(0.0, 1.0, shape=(84, 84, 3), dtype=np.float32)
