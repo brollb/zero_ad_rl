@@ -10,7 +10,7 @@ pip install -e .
 Next, install 0 AD (version > 0.23) and the [mod](https://trac.wildfiregames.com/wiki/Modding_Guide#Howtoinstallmods) containing the custom maps. Next, run an instance of the latest version of 0 AD (post 0.23) locally:
 
 ```bash
-pyrogenesis --rl-interface=0.0.0.0:6000 --autostart-nonvisual
+pyrogenesis --rl-interface=0.0.0.0:6000 --autostart-nonvisual --mod=rl-scenarios --mod=public
 ```
 
 Next, train an agent using
