@@ -2,7 +2,7 @@
     This script wraps the default rllib train script and registers the CavalryVsInfantry scenario.
 """
 
-from ray.rllib.train import create_parser, run
+from ray.rllib import train
 from ray.tune.registry import register_env
 from .env import register_envs
 
@@ -22,10 +22,7 @@ def on_train_result(info):
         lambda ev: ev.foreach_env(
             lambda env: invoke_if_defined(env, 'on_train_result', reward_mean)))
 
-if __name__ == '__main__':
-    parser = create_parser()
-    parser.set_defaults(env='CavalryVsInfantry')
-    args = parser.parse_args()
+def run(args, parser):
     config = args.config
 
     if 'callbacks' not in config:
@@ -35,4 +32,14 @@ if __name__ == '__main__':
          config['callbacks']['on_train_result'] = on_train_result
     else:
         print('on_train_result defined. Overriding default')
+    train.run(args, parser)
+
+def create_parser():
+    parser = train.create_parser()
+    parser.set_defaults(env='CavalryVsInfantry')
+    return parser
+
+if __name__ == '__main__':
+    parser = create_parser()
+    args = parser.parse_args()
     run(args, parser)
