@@ -27,16 +27,36 @@ class ActionBuilder():
     def to_image(self, action):
         pass
 
-class BaseZeroADEnv(gym.Env):
-    def __init__(self, config, action_builder, state_builder):
+def get_player_state(state, index):
+    return state.data['players'][index]['state']
+
+class RewardBuilder():
+    def __call__(self, prev_state, state):
+        pass
+
+    def reset(self, initial_state):
+        pass
+
+class WinLoseReward(RewardBuilder):
+    def __call__(self, prev_state, state):
+        if get_player_state(state, 1) == 'defeated':
+            return -1
+        elif get_player_state(state, 2) == 'defeated':
+            return 1
+        else:
+            return 0
+
+
+class ZeroADEnv(gym.Env):
+    def __init__(self, address, scenario_config, action_builder, state_builder, reward_builder=WinLoseReward(), step_count=8):
         self.actions = action_builder
         self.states = state_builder
+        self.reward = reward_builder
         self.action_space = self.actions.space
         self.observation_space = self.states.space
-        self.config = config
-        self.step_count = 8
-        server_address = self.address(config.worker_index)
-        self.game = zero_ad.ZeroAD(server_address)
+        self.step_count = step_count
+        self.game = zero_ad.ZeroAD(address)
+        self.scenario_config = scenario_config
         self.prev_state = None
         self.state = None
         self.cum_reward = 0
@@ -46,7 +66,8 @@ class BaseZeroADEnv(gym.Env):
         return f'http://127.0.0.1:{port}'
 
     def reset(self):
-        self.prev_state = self.game.reset(self.scenario_config())
+        self.prev_state = self.game.reset(self.scenario_config)
+        self.reward.reset(self.prev_state)
         self.state = self.game.step([zero_ad.actions.reveal_map()])
         return self.observation(self.state)
 
@@ -76,24 +97,25 @@ class BaseZeroADEnv(gym.Env):
     def episode_complete_stats(self, state):
         stats = {}
         stats['reward'] = self.cum_reward
-        stats['win'] = self.get_player_state(state, 2) == 'defeated'
+        stats['win'] = get_player_state(state, 2) == 'defeated'
         return stats
-
-    def get_player_state(self, state, index):
-        return state.data['players'][index]['state']
-
-    def reward(self, prev_state, state):
-        if self.get_player_state(state, 1) == 'defeated':
-            return -1
-        elif self.get_player_state(state, 2) == 'defeated':
-            return 1
-        else:
-            return 0
 
     def observation(self, state):
         return self.states.from_json(state)
 
+
+class ZeroADEnvRLlib(ZeroADEnv):
+    def __init__(self, config):
+        # TODO: can we set the action builder in the config?
+        server_address = self.address(config.worker_index)
+        super.__init__(self, server_address, None, action_builder, state_builder)
+
+    def address(self, worker_index):
+        port = 6000 + worker_index
+        return f'http://127.0.0.1:{port}'
+
+    @property
     def scenario_config(self):
-        pass
+        return self.config.get('scenario_config')
 
-
+BaseZeroADEnv = ZeroADEnv
