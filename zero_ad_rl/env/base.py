@@ -48,22 +48,25 @@ class WinLoseReward(RewardBuilder):
 
 
 class ZeroADEnv(gym.Env):
-    def __init__(self, address, scenario_config, action_builder, state_builder, reward_builder=WinLoseReward(), step_count=8):
+    def __init__(self, action_builder, state_builder, reward_builder=WinLoseReward(), step_count=8):
         self.actions = action_builder
         self.states = state_builder
         self.reward = reward_builder
         self.action_space = self.actions.space
         self.observation_space = self.states.space
         self.step_count = step_count
-        self.game = zero_ad.ZeroAD(address)
-        self.scenario_config = scenario_config
+        self.game = zero_ad.ZeroAD(self.address)
         self.prev_state = None
         self.state = None
         self.cum_reward = 0
 
-    def address(self, worker_index):
-        port = 6000 + worker_index
-        return f'http://127.0.0.1:{port}'
+    @property
+    def address(self):
+        return 'http://127.0.0.1:6000'
+
+    @property
+    def scenario_config(self):
+        pass
 
     def reset(self):
         self.prev_state = self.game.reset(self.scenario_config)

@@ -6,7 +6,7 @@ from PIL import Image
 import gym
 import math
 from gym.spaces import Discrete, Box
-from .base import StateBuilder, ActionBuilder, BaseZeroADEnv
+from .base import StateBuilder, ActionBuilder, ZeroADEnv
 import numpy as np
 import zero_ad
 from os import path
@@ -58,13 +58,14 @@ class AttackRetreat(ActionBuilder):
 
         return zero_ad.actions.attack(units, closest_enemy)
 
-class CavalryVsInfantryEnv(BaseZeroADEnv):
+class CavalryVsInfantryEnv(ZeroADEnv):
     def __init__(self, config):
-        super().__init__(config, AttackRetreat(), EnemyDistance())
+        super().__init__(AttackRetreat(), EnemyDistance())
 
     def scenario_config_file(self):
         return 'CavalryVsInfantry.json'
 
+    @property
     def scenario_config(self):
         configs_dir = path.join(path.dirname(path.realpath(__file__)), 'scenarios')
         filename = self.scenario_config_file()
@@ -104,9 +105,9 @@ class Minimap(StateBuilder):
         arry = 255*self.from_json(state)
         return Image.fromarray(arry.astype(np.uint8))
 
-class SimpleMinimapCavVsInfEnv(BaseZeroADEnv):
+class SimpleMinimapCavVsInfEnv(ZeroADEnv):
     def __init__(self, config):
-        super().__init__(config, AttackRetreat(), Minimap())
+        super().__init__(AttackRetreat(), Minimap())
 
 class AttackAndMove(AttackRetreat):
     def __init__(self):
@@ -129,9 +130,9 @@ class AttackAndMove(AttackRetreat):
         return zero_ad.actions.walk(units, *position)
 
 
-class MinimapCavVsInfEnv(BaseZeroADEnv):
+class MinimapCavVsInfEnv(ZeroADEnv):
     def __init__(self, config):
-        super().__init__(config, AttackAndMove(), Minimap())
+        super().__init__(AttackAndMove(), Minimap())
         self.level = config.get('level', 1)
         self.caution_factor = 10
 
